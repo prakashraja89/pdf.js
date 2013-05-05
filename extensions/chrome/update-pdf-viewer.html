@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+ Migration assistent of PDF Viewer, created by Rob W <gwnRob@gmail.com>.
+ See also https://github.com/mozilla/pdf.js/issues/3042
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Update PDF Viewer</title>
+<style>
+body {
+    margin: 3rem 1.5rem;
+    text-align: center;
+}
+#upgrade-message {
+    display: inline-block;
+    padding-left: 128px;
+    min-height: 128px;
+    line-height: 128px;
+    background: url("icon128.png") no-repeat;
+}
+#update-request {
+    line-height: 100%;
+    display: inline-block;
+    font-size: 1.5rem;
+}
+#update-request small {
+    font-size: 1rem;
+}
+#viewer-link {
+    display: inline-block;
+    max-width: 70%;
+    word-break: break-word;
+    vertical-align: top;
+}
+#whats-new-link {
+    display: inline-block;
+    margin-left: -1rem;
+    -webkit-transform: translateX(2rem);
+    transform: translateX(2rem);
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+</style>
+</head>
+<body>
+<div id="upgrade-message">
+<p id="update-request">
+An official version of <strong>PDF Viewer</strong> has been published.<br>
+Visit <a href="https://chrome.google.com/webstore/detail/pdf-viewer/oemmndcbldboiebfnladdacbdfmadadm" id="cws-link">PDF Viewer in the Chrome Web Store</a> to upgrade now.
+<a href="https://github.com/mozilla/pdf.js/pull/3017" id="whats-new-link" title="PR: Chrome extension - highly improved">What's new?</a><br>
+<small>(after adding the new version, the old version will uninstall itself)</small>
+</p>
+</div>
+
+<p id="not-now">
+Not now, view <a id="viewer-link">placeholder.pdf</a>
+</p>
+<script src="update-pdf-viewer.js"></script>
+</body>
+</html>

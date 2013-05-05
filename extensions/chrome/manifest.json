@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "PDF Viewer",
+  "name": "PDF Viewer (old)",
   "version": "PDFJSSCRIPT_VERSION",
-  "description": "Uses HTML5 to display PDF files directly in Chrome.",
+  "description": "This PDF Viewer is deprecated. Visit the Chrone Web Store to get the official version.",
   "icons": {
     "128": "icon128.png",
     "48": "icon48.png",
@@ -19,5 +19,10 @@
   ],
   "background": {
     "page": "pdfHandler.html"
-  }
+  },
+  "options_page": "update-pdf-viewer.html",
+  "web_accessible_resources": [
+    "update-pdf-viewer.html",
+    "content/web/viewer.html"
+  ]
 }

@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-/* globals chrome */
+/* globals chrome, checkIfUpgradedSync, deactivate_extension */
 
 'use strict';
 
@@ -23,16 +23,23 @@ function isPdfDownloadable(details) {
   return details.url.indexOf('pdfjs.action=download') >= 0;
 }
 
-chrome.webRequest.onBeforeRequest.addListener(
-  function(details) {
-    if (isPdfDownloadable(details))
-      return;
+function pdf_webRequestListener(details) {
+  if (isPdfDownloadable(details))
+    return;
 
-    var viewerPage = 'content/web/viewer.html';
-    var url = chrome.extension.getURL(viewerPage) +
-      '?file=' + encodeURIComponent(details.url);
-    return { redirectUrl: url };
-  },
+  if (checkIfUpgradedSync()) {
+    // Upgraded, the new viewer will take care of the pdf file.
+    deactivate_extension();
+    return;
+  }
+
+  var viewerPage = 'update-pdf-viewer.html';
+  var url = chrome.extension.getURL(viewerPage) +
+    '?file=' + encodeURIComponent(details.url);
+  return { redirectUrl: url };
+}
+chrome.webRequest.onBeforeRequest.addListener(
+  pdf_webRequestListener,
   {
     urls: [
       'http://*/*.pdf',
