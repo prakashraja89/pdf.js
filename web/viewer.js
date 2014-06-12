@@ -1896,6 +1896,10 @@ function webViewerInitialized() {
   document.getElementById('scaleSelect').addEventListener('change',
     function() {
       PDFView.setScale(this.value);
+      // After changing the zoom level, put the keyboard focus on the main
+      // element to make sure that arrow keys etc. trigger the PDF Viewer's
+      // shortcuts instead of changing an option in the dropdown menu.
+      PDFView.container.focus();
     });
 
   document.getElementById('presentationMode').addEventListener('click',
