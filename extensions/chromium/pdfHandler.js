@@ -97,6 +97,109 @@ function getHeadersWithContentDispositionAttachment(details) {
   }
 }
 
+// Remembers the request headers for every http(s) page request for the duration
+// of the request.
+var g_requestHeaders = {};
+(function() {
+  var requestFilter = {
+    urls: ['*://*/*'],
+    types: ['main_frame', 'sub_frame']
+  };
+  chrome.webRequest.onSendHeaders.addListener(function(details) {
+    g_requestHeaders[details.requestId] = details.requestHeaders;
+  }, requestFilter, ['requestHeaders']);
+  chrome.webRequest.onBeforeRedirect.addListener(forgetHeaders, requestFilter);
+  chrome.webRequest.onCompleted.addListener(forgetHeaders, requestFilter);
+  chrome.webRequest.onErrorOccurred.addListener(forgetHeaders, requestFilter);
+  function forgetHeaders(details) {
+    delete g_requestHeaders[details.requestId];
+  }
+})();
+
+// This method binds a webRequest event handler which adds the Referer header
+// to matching PDF resource requests (only if the Referer is non-empty). The
+// handler is removed as soon as the PDF viewer frame is unloaded.
+// NOTE: A limitation of this method is that the referrer is not added again
+// when the page reloads, or when the page is navigated away.
+function stickRefererToResource(requestId, tabId, frameId, pdfUrl) {
+  if (!g_requestHeaders[requestId]) {
+    // This case should not happen, because g_requestHeaders is set before the
+    // request is sent to the server, and reset upon completion of the request.
+    return;
+  }
+  var referer = getHeaderFromHeaders(g_requestHeaders[requestId], 'referer');
+  referer = referer && referer.value;
+  if (!referer) {
+    return;
+  }
+
+  chrome.runtime.onConnect.addListener(onReceivePort);
+  chrome.tabs.onRemoved.addListener(onTabRemoved);
+  chrome.webNavigation.onBeforeNavigate.addListener(onBeforeNavigate);
+  chrome.webRequest.onBeforeSendHeaders.addListener(onBeforeSendHeaders, {
+    urls: [pdfUrl],
+    types: ['xmlhttprequest'],
+    tabId: tabId
+  }, ['blocking', 'requestHeaders']);
+
+  function onReceivePort(port) {
+    if (port.name !== 'chromecom-is-alive') {
+      return;
+    }
+    // Note: sender.frameId is only set in Chrome 41+.
+    if (port.sender.tabId !== tabId || port.sender.frameId !== frameId) {
+      return;
+    }
+    // The port is only disconnected when the other end reloads.
+    port.onDisconnect.addListener(unstickHandlers);
+    // Remove these listeners, because we now have a more granular event handler
+    // that only gets triggered when the page really unloads.
+    chrome.runtime.onConnect.removeListener(onReceivePort);
+    chrome.tabs.onRemoved.addListener(onTabRemoved);
+    chrome.webNavigation.onBeforeNavigate.removeListener(onBeforeNavigate);
+  }
+  function onTabRemoved(removedTabId) {
+    if (removedTabId === tabId) {
+      unstickHandlers();
+    }
+  }
+  function onBeforeNavigate(details) {
+    if (details.tabId !== tabId) {
+      return;
+    }
+    if (details.frameId === frameId || details.frameId === 0) {
+      unstickHandlers();
+    }
+  }
+  function onBeforeSendHeaders(details) {
+    if (details.frameId !== frameId) {
+      return;
+    }
+    var headers = details.requestHeaders;
+    var refererHeader = getHeaderFromHeaders(headers, 'referer');
+    if (!refererHeader) {
+      refererHeader = {name: 'Referer'};
+      headers.push(refererHeader);
+    } else if (refererHeader.value &&
+        refererHeader.value.lastIndexOf('chrome-extension:', 0) !== 0) {
+      // Sanity check. If the referer is set, and the value is not the URL of
+      // this extension, then the request was not initiated by this extension.
+      unstickHandlers();
+      return;
+    }
+    refererHeader.value = referer;
+    return {requestHeaders: headers};
+  }
+
+  function unstickHandlers() {
+    chrome.runtime.onConnect.removeListener(onReceivePort);
+    chrome.tabs.onRemoved.removeListener(onTabRemoved);
+    chrome.webNavigation.onBeforeNavigate.removeListener(onBeforeNavigate);
+    chrome.webRequest.onBeforeSendHeaders.removeListener(onBeforeSendHeaders);
+  }
+}
+
+
 chrome.webRequest.onHeadersReceived.addListener(
   function(details) {
     if (details.method !== 'GET') {
@@ -112,6 +215,9 @@ chrome.webRequest.onHeadersReceived.addListener(
     }
 
     var viewerUrl = getViewerURL(details.url);
+
+    stickRefererToResource(details.requestId, details.tabId, details.frameId,
+        details.url);
 
     // Replace frame with viewer
     if (Features.webRequestRedirectUrl) {

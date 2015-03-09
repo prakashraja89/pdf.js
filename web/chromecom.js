@@ -107,5 +107,13 @@ var ChromeCom = (function ChromeComClosure() {
       PDFViewerApplication.open(file, 0);
     });
   };
+
+  // Open a port to the background page. The background page can then bind an
+  // onDisconnect event to this port to discover that the page has unload.
+  // Note: The return value is not used, but assigned to a property to make sure
+  // that the port never gets garbage-collected.
+  ChromeCom.openPDFFile._unloadPortDontUseThisProperty =
+    chrome.runtime.connect({name: 'chromecom-is-alive'});
+
   return ChromeCom;
 })();
