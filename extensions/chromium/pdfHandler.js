@@ -46,7 +46,7 @@ function isPdfDownloadable(details) {
 
 /**
  * Get the header from the list of headers for a given name.
- * @param {Array} headers responseHeaders of webRequest.onHeadersReceived
+ * @param {Array} headers HTTP headers of a webRequest event.
  * @return {undefined|{name: string, value: string}} The header, if found.
  */
 function getHeaderFromHeaders(headers, headerName) {

@@ -104,8 +104,33 @@ var ChromeCom = (function ChromeComClosure() {
         });
         return;
       }
+      if (/^https?:/.test(file) && document.referrer) {
+        openAndPreserveReferer(file);
+        return;
+      }
       PDFViewerApplication.open(file, 0);
     });
   };
+
+  function openAndPreserveReferer(url) {
+    var refererData = {
+      referer: document.referrer,
+      url: url
+    };
+    // The background page will accept the port, and keep adding the Referer
+    // request header to requests to |url| until the port is disconnected.
+    var port = chrome.runtime.connect({
+      name: 'set-referer' + JSON.stringify(refererData)
+    });
+    // The background script will send an acknowledgement upon success.
+    port.onMessage.addListener(onCompleted);
+    // When the connection fails, ignore the error and open the PDF.
+    port.onDisconnect.addListener(onCompleted);
+    function onCompleted() {
+      port.onDisconnect.removeListener(onCompleted);
+      port.onMessage.removeListener(onCompleted);
+      PDFViewerApplication.open(url, 0);
+    }
+  }
   return ChromeCom;
 })();
