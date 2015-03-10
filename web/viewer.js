@@ -231,8 +231,8 @@ var PDFViewerApplication = {
       }),
       Preferences.get('showPreviousViewOnLoad').then(function resolved(value) {
         self.preferenceShowPreviousViewOnLoad = value;
-        if (!value && window.history.state) {
-          window.history.replaceState(null, '');
+        if (!value) {
+          PDFHistory.clearHistoryState();
         }
       }),
       Preferences.get('disableTextLayer').then(function resolved(value) {
